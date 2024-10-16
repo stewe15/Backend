@@ -105,5 +105,7 @@ async def chat(websocket: WebSocket, username: str, to: str):
                 await websocket.send_text(
                         f"Пользователь {to} не подключён ваше сообщение ({message}) добавлено в очередь")
 
-    except WebSocketDisconnect:
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
         await websocket.close()
