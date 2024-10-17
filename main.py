@@ -107,5 +107,3 @@ async def chat(websocket: WebSocket, username: str, to: str):
 
     except Exception as e:
         print(f"Error: {e}")
-    finally:
-        await websocket.close()
