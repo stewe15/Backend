@@ -71,11 +71,12 @@ async def get_users(websocket: WebSocket):
 @app.websocket("/ws/chatUser/{username}/{to}")
 async def chat(websocket: WebSocket, username: str, to: str):
     await websocket.accept()
-    flag = False
     obj2 = ConnectedUser()
     obj2.ws = websocket
     obj2.name = username
     connected_clients.append(obj2)
+
+    # Отправка сообщений из очереди, если они есть
     for ms in messages_queue:
         if ms.name == username:
             await websocket.send_text(ms.msgs)
@@ -88,22 +89,32 @@ async def chat(websocket: WebSocket, username: str, to: str):
             message = f"{username}: {data}"
             msageforuser = f"Вы: {data}"
 
+            # Флаг для проверки, был ли пользователь найден
+            flag = False
+
+            # Отправка сообщения получателю
             for i in connected_clients:
                 if i.name == to:
                     await i.ws.send_text(message)
                     flag = True
                     break
-            for i in connected_clients:
-                if i.name == username:
-                    await i.ws.send_text(msageforuser)
-                    break
+
+            # Отправка сообщения отправителю
+            await websocket.send_text(msageforuser)
+
+            # Если получатель не найден, добавляем сообщение в очередь
             if not flag:
                 obj = Messages_queue()
                 obj.name = to
                 obj.msgs = message
                 messages_queue.append(obj)
                 await websocket.send_text(
-                        f"Пользователь {to} не подключён ваше сообщение ({message}) добавлено в очередь")
+                    f"Пользователь {to} не подключён, ваше сообщение ({message}) добавлено в очередь"
+                )
 
+    except WebSocketDisconnect:
+        # Удаление отключенного клиента из списка
+        connected_clients.remove(obj2)
+        print(f"{username} отключился")
     except Exception as e:
         print(f"Error: {e}")
